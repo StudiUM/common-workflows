@@ -46,6 +46,10 @@ on:
         description: 'Whether to run the Behat suite'
         type: boolean
         default: true
+      behat-timeout-factor:
+        description: 'Moodle Behat timeout multiplier ($CFG->behat_increasetimeout)'
+        type: number
+        default: 1
 
 permissions:
   contents: read
@@ -120,6 +124,19 @@ jobs:
         env:
           DB: ${{ matrix.database }}
           MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: Configure Behat timeout
+        if: ${{ !cancelled() && inputs.behat-timeout-factor > 1 }}
+        run: |
+          php -r '
+          $config = $argv[1];
+          $factor = $argv[2];
+          file_put_contents(
+              $config,
+              PHP_EOL . "\$CFG->behat_increasetimeout = " . $factor . ";" . PHP_EOL,
+              FILE_APPEND
+          );
+          ' "${{ github.workspace }}/moodle/config.php" "${{ inputs.behat-timeout-factor }}"
 
       - name: PHP Lint
         if: ${{ !cancelled() }}
@@ -196,3 +213,4 @@ jobs:
 #       databases: '["mariadb"]'
 #       dependent-plugins: |
 #         --branch main StudiUM/moodle-qtype_tcs
+#       behat-timeout-factor: 3
